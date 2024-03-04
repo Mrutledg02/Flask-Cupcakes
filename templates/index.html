@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/app.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
+    <title>Cupcake App</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Cupcake App</h1>
+        <ul id="cupcakes-list">
+            <!-- List of cupcakes will go here -->
+        </ul>
+
+        <!-- Render WTForms generated form -->
+        <form id="new-cupcake-form" method="post" action="/api/cupcakes">
+            {{ form.hidden_tag() }}
+            <div class="form-group">
+                {{ form.flavor.label() }}
+                {{ form.flavor(class="form-control", placeholder="Cupcake Flavors") }}
+                {% if form.flavor.errors %}
+                    <ul class="errors">
+                        {% for error in form.flavor.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.size.label() }}
+                <select class="form-control select" id="size" name="size">
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                </select>
+                {% if form.size.errors %}
+                    <ul class="errors">
+                        {% for error in form.size.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.rating.label() }}
+                {{ form.rating(class="form-control", placeholder="Rating from 1 to 10") }}
+                {% if form.rating.errors %}
+                    <ul class="errors">
+                        {% for error in form.rating.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <div class="form-group">
+                {{ form.image.label() }}
+                {{ form.image(class="form-control", placeholder="Cupcake Image") }}
+                {% if form.image.errors %}
+                    <ul class="errors">
+                        {% for error in form.image.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            <button type="submit" class="button">Add Cupcake</button>
+        </form>
+
+        <!-- Search input -->
+        <input type="text" id="search-term" class="form-control" placeholder="Search Cupcakes">
+    </div>
+
+    
+
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

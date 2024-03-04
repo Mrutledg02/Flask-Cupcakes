@@ -1,7 +1,8 @@
 """Flask app for Cupcakes"""
-from flask import Flask, request, jsonify, render_template, redirect
+from flask import Flask, request, jsonify, render_template, redirect, send_from_directory, request
 from models import db, connect_db, Cupcake
 from seed import seed_database
+from forms import CupcakeForm
 
 app = Flask(__name__)
 
@@ -10,28 +11,32 @@ app.app_context().push()
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///cupcakes'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = True
+app.config['url_pattern'] = r'^(https?|ftp)://[^\s/$.?#].[^\s]*$'
 app.config['SECRET_KEY'] = "SECRET!"
 
 connect_db(app)
 
 seed_database()
 
-# Make routes for the following:
-# GET /api/cupcakes : Get data about all cupcakes. Respond with JSON like: {cupcakes: [{id, flavor, size, rating, image}, ...]}. The values should come from each cupcake instance.
-# GET /api/cupcakes/[cupcake-id] : Get data about a single cupcake. Respond with JSON like: {cupcake: {id, flavor, size, rating, image}}. This should raise a 404 if the cupcake cannot be found.
-# POST /api/cupcakes : Create a cupcake with flavor, size, rating and image data from the body of the request. Respond with JSON like: {cupcake: {id, flavor, size, rating, image}}.
-# Test that these routes work in Insomnia.
-# We’ve provided tests for these three routes; these test should pass if the routes work properly.
-# You can run our tests like:
-# (venv) $python -m unittest -v tests
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    form = CupcakeForm(request.form)  # Create an instance of the form
+    if request.method == 'POST' and form.validate():
+        # Process form submission
+        flavor = form.flavor.data
+        size = form.size.data
+        rating = form.rating.data
+        image = form.image.data
 
-@app.route('/')
-def home_page():
-    return render_template('index.html')
+    return render_template('index.html', form=form)
 
-@app.route('/api/cupcakes')
+@app.route('/api/cupcakes', methods=["GET"])
 def list_cupcakes():
-    cupcakes = [cupcake.serialize() for cupcake in Cupcake.query.all()]
+    search_term = request.args.get('search_term')
+    if search_term:
+        cupcakes = [cupcake.serialize() for cupcake in Cupcake.query.filter(Cupcake.flavor.ilike(f'%{search_term}%')).all()]
+    else:
+        cupcakes = [cupcake.serialize() for cupcake in Cupcake.query.all()]
     return jsonify(cupcakes=cupcakes)
 
 @app.route('/api/cupcakes/<int:cupcake_id>')
@@ -52,3 +57,50 @@ def create_cupcake():
     db.session.commit()
     response_json = jsonify(cupcake=cupcake.serialize())
     return (response_json, 201)
+
+@app.route('/api/cupcakes/<int:cupcake_id>', methods=["PATCH"])
+def update_cupcake(cupcake_id):
+    cupcake = Cupcake.query.get_or_404(cupcake_id)
+    data = request.json
+    cupcake.flavor = data['flavor']
+    cupcake.size = data['size']
+    cupcake.rating = data['rating']
+    cupcake.image = data['image']
+    db.session.commit()
+    return jsonify(cupcake=cupcake.serialize())
+
+@app.route('/api/cupcakes/<int:cupcake_id>', methods=["DELETE"])
+def delete_cupcake(cupcake_id):
+    cupcake = Cupcake.query.get_or_404(cupcake_id)
+    db.session.delete(cupcake)
+    db.session.commit()
+    return jsonify(message="Deleted")
+
+@app.route('/static/<path:path>')
+def send_js(path):
+    return send_from_directory('static', path)
+
+@app.route('/edit/<int:cupcake_id>', methods=['GET', 'POST'])
+def edit_cupcake(cupcake_id):
+    cupcake = Cupcake.query.get_or_404(cupcake_id)
+
+    if request.method == 'POST':
+        # Get edit data from the form
+        flavor = request.form['flavor']
+        size = request.form['size']
+        rating = request.form['rating']
+        image = request.form['image']
+
+        # Edit cupcake attributes
+        cupcake.flavor = flavor
+        cupcake.size = size
+        cupcake.rating = rating
+        cupcake.image = image
+
+        db.session.commit()
+
+        # Redirect to the home page or any other page
+        return redirect('/')
+
+    # Render the update form with the cupcake data
+    return render_template('edit_cupcake.html', cupcake=cupcake)
